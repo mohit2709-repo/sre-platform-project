@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sre-project-config
+  namespace: sre-project
+data:
+  APP_ENV: "dev"
+  LOG_LEVEL: "info"

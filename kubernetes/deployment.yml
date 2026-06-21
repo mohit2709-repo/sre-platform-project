@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-project-deployment
+  namespace: sre-project
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sre-project-app
+  template:
+    metadata:
+      labels:
+        app: sre-project-app
+    spec:
+      containers:
+        - name: sre-project-container
+          image: mohit2709/task-api:v1
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/db
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
