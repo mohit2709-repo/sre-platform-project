@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: sre-project
+spec:
+  schedule: "0 2 * * 0" # Every Sunday at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+
+          containers:
+            - name: postgres-backup
+              image: postgres:13-alpine
+
+              env:
+                - name: PGHOST
+                  value: postgres
+
+                - name: PGDATABASE
+                  value: tasksdb
+
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: sre-project-db-credentials
+                      key: username
+
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: sre-project-db-credentials
+                      key: password
+
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  mkdir -p /backup
+
+                  pg_dump \
+                    -h $PGHOST \
+                    -U $PGUSER \
+                    -d $PGDATABASE \
+                    -F p \
+                    -f /backup/tasksdb-$(date +%F-%H-%M-%S).sql
+
+                  echo "Backup completed."
+
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: postgres-backup-pvc
