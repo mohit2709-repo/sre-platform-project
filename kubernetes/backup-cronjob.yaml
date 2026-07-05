@@ -20,7 +20,7 @@ spec:
 
               env:
                 - name: PGHOST
-                  value: postgres
+                  value: postgres-primary
 
                 - name: PGDATABASE
                   value: tasksdb

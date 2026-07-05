@@ -17,6 +17,8 @@ spec:
       containers:
         - name: postgres
           image: postgres:13-alpine
+
+          args: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
           ports:
             - containerPort: 5432
               name: postgres
@@ -37,6 +39,13 @@ spec:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
               subPath: postgres
+            - name: postgres-config
+              mountPath: /etc/postgresql
+              readOnly: true
+      volumes:
+        - name: postgres-config
+          configMap:
+            name: postgres-primary-config
   volumeClaimTemplates:
     - metadata:
         name: postgres-storage

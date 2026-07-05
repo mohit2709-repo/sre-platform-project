@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-replica-configmap
+  namespace: sre-project
+data:
+  postgres-replica.conf: |
+    primary_conninfo = 'host=postgres port=5432 user=replicator password=replication'
+    primary_slot_name = 'replica_slot'
+    hot_standby = on
