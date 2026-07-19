@@ -1,32 +1,37 @@
 # SRE Platform Project
 
-This project is a simple task management API built with FastAPI and PostgreSQL, designed to demonstrate containerized application deployment, health checks, observability, and Kubernetes manifests.
+This repository contains a containerized FastAPI task management service along with infrastructure-as-code and Kubernetes assets for deploying it in a modern platform environment.
 
 ## Overview
 
-The backend exposes REST endpoints for creating, listing, retrieving, and deleting tasks. It also includes:
+The project demonstrates a full path from local development to cloud deployment, including:
 
-- health endpoints for service and database checks
-- Prometheus-style metrics instrumentation
-- Docker Compose support for local development
-- Kubernetes manifests for deployment
+- a FastAPI backend with PostgreSQL persistence
+- Docker Compose for local development
+- Kubernetes manifests for application deployment and supporting services
+- Terraform configuration for provisioning an AWS EKS cluster and node group
+- health checks, metrics, and basic observability
 
 ## Project Structure
 
 - [backend/app/main.py](backend/app/main.py) - FastAPI application and API routes
 - [backend/app/database.py](backend/app/database.py) - SQLAlchemy database configuration and connection handling
-- [backend/app/models.py](backend/app/models.py) - Task model definition
+- [backend/app/models.py](backend/app/models.py) - Task model definitions
 - [backend/app/crud.py](backend/app/crud.py) - Database CRUD logic
-- [backend/app/schemas.py](backend/app/schemas.py) - Pydantic request/response schemas
+- [backend/app/schemas.py](backend/app/schemas.py) - Pydantic request and response schemas
 - [docker-compose.yml](docker-compose.yml) - Local Docker Compose setup for PostgreSQL and the backend
-- [kubernetes](kubernetes) - Kubernetes deployment manifests
+- [kubernetes](kubernetes) - Kubernetes deployment manifests for the app, PostgreSQL, and backup workflow
+- [terraform](terraform) - Terraform files for provisioning AWS EKS infrastructure
 
 ## Prerequisites
 
-Before running the project, make sure you have:
+Before running or deploying the project, make sure you have:
 
 - Docker and Docker Compose
 - Python 3.11+ (optional for local non-container development)
+- Terraform
+- AWS CLI configured with credentials
+- kubectl
 
 ## Running with Docker Compose
 
@@ -91,7 +96,21 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 You will still need a PostgreSQL instance available at the configured URL.
 
-## Kubernetes Deployment
+## Provisioning EKS with Terraform
+
+The Terraform configuration in [terraform](terraform) provisions an EKS cluster and node group for the application.
+
+```bash
+cd terraform
+terraform init
+terraform validate
+terraform plan
+terraform apply
+```
+
+Make sure your AWS credentials are configured before applying the changes.
+
+## Deploying to Kubernetes
 
 The repository includes Kubernetes manifests under [kubernetes](kubernetes). To deploy them:
 
@@ -101,9 +120,10 @@ kubectl apply -f kubernetes/
 
 ## Notes
 
-The application is intentionally lightweight and is suitable for learning and demonstrating:
+The application is intended as a practical example for learning and demonstrating:
 
 - REST API development with FastAPI
 - Database-backed services
-- Observability and metrics exposure
-- Basic DevOps and platform engineering workflows
+- Container orchestration with Kubernetes
+- Infrastructure provisioning with Terraform
+- Basic observability and platform engineering workflows
