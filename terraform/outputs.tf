@@ -71,3 +71,18 @@ output "eks_node_group_role_arn" {
     description = "The ARN of the EKS node group IAM role"
     value = aws_iam_role.eks_node_group_role.arn
 }
+
+output "ebs_csi_driver_role_arn" {
+    description = "The ARN of the EBS CSI Driver IAM role"
+    value = aws_iam_role.ebs_csi_driver_role.arn
+}
+
+output "ebs_csi_driver_policy_attachment_id" {
+    description = "The ID of the EBS CSI Driver IAM policy attachment"
+    value = aws_iam_role_policy_attachment.ebs_csi_driver_policy_attachment.id
+}
+
+output "ebs_csi_driver_addon_name" {
+    description = "The name of the EBS CSI Driver addon"
+    value = aws_eks_addon.ebs_csi_driver.addon_name
+}

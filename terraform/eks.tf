@@ -3,7 +3,7 @@
 resource "aws_eks_cluster" "sre_eks_cluster" {
   name     = "sre-eks-cluster"
   role_arn = aws_iam_role.eks_cluster_role.arn
-  version = "1.31"
+  version = "1.35"
 
   vpc_config {
     subnet_ids = [
