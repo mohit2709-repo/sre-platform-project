@@ -1,0 +1,18 @@
+apiVersion: v2
+name: sre-project
+description: HelmChart for sre-project
+type: application
+version: 0.1.0      #Helm chart version
+appVersion: 1.0.0   #Application version
+
+keywords:
+  - sre
+  - devops
+  - kubernetes
+  - terraform
+  - fastapi
+
+
+maintainers:
+  - name: Mohit Sharma
+

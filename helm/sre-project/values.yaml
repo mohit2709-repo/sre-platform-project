@@ -1,0 +1,49 @@
+namespace: sre-project
+
+replicaCount: 2
+
+image:
+  repository: mohit2709/task-api
+  pullPolicy: IfNotPresent
+  tag: v1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+postgres:
+  image: postgres:13-alpine
+  database: tasksdb
+  storage: 1Gi
+  existingSecret: sre-project-db-credentials
+  storageClassName: standard
+  replicas: 1
+  configmapName: postgres-primary-config
+
+replica:
+  replicas: 1
+  replicationSecret: postgres-replication-secret
+  replicationUser: replicator
+  replicationSlot: replica_slot
+
+backup:
+  schedule: "0 2 * * 0" # Every Sunday at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  host: postgres
+  pvc: postgres-backup-pvc
+
+
+config:
+  app_env: "dev"
+  log_level: "info"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+

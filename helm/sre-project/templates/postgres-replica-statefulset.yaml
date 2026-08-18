@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "sre-project.labels" . | nindent 4 }}
+  
+spec:
+  serviceName: postgres-replica
+  replicas: {{ .Values.replica.replicas }}
+
+  selector:
+    matchLabels:
+      app: postgres-replica
+
+  template:
+    metadata:
+      labels:
+        app: postgres-replica
+    
+    spec:
+      initContainers:
+        - name: clone-primary
+          image: {{ .Values.postgres.image }}
+
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.replica.replicationSecret }}
+                  key: password
+
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+
+                echo "Starting pg_basebackup..."
+
+                pg_basebackup \
+                  -h postgres \
+                  -U {{ .Values.replica.replicationUser }} \
+                  -D /var/lib/postgresql/data \
+                  -Fp \
+                  -X stream \
+                  -P \
+                  -R \
+                  -S {{ .Values.replica.replicationSlot }}
+
+                echo "Primary cloned successfully."
+
+              else
+
+                echo "Replica already initialized."
+
+              fi
+
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      
+      containers:
+      - name: postgres
+        image: {{ .Values.postgres.image }}
+        env:
+          - name: POSTGRES_DB
+            value: {{ .Values.postgres.database }}
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.postgres.existingSecret }}
+                key: username
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.postgres.existingSecret }}
+                key: password
+        ports:
+          - containerPort: 5432
+            name: postgres
+        volumeMounts:
+          - name: postgres-storage
+            mountPath: /var/lib/postgresql/data 
+
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.postgres.storage }}

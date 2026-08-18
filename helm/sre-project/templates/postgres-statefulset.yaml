@@ -2,10 +2,12 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: sre-project
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "sre-project.labels" . | nindent 4 }}
 spec:
   serviceName: postgres
-  replicas: 1
+  replicas: {{ .Values.postgres.replicas }}
   selector:
     matchLabels:
       app: postgres
@@ -16,24 +18,23 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:13-alpine
-
+          image: {{ .Values.postgres.image }}
           args: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
           ports:
             - containerPort: 5432
               name: postgres
           env:
             - name: POSTGRES_DB
-              value: tasksdb
+              value: {{ .Values.postgres.database }}
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: sre-project-db-credentials
+                  name: {{ .Values.postgres.existingSecret }}
                   key: username
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: sre-project-db-credentials
+                  name: {{ .Values.postgres.existingSecret }}
                   key: password
           volumeMounts:
             - name: postgres-storage
@@ -45,26 +46,13 @@ spec:
       volumes:
         - name: postgres-config
           configMap:
-            name: postgres-primary-config
+            name: {{ .Values.postgres.configmapName }}
   volumeClaimTemplates:
     - metadata:
         name: postgres-storage
       spec:
-        storageClassName: standard
-        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.postgres.storageClassName }}
+        accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 1Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-  namespace: sre-project
-spec:
-  clusterIP: None
-  selector:
-    app: postgres
-  ports:
-    - port: 5432
-      targetPort: 5432
+            storage: {{ .Values.postgres.storage }}

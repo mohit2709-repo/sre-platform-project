@@ -2,11 +2,15 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: postgres-backup
-  namespace: sre-project
+  namespace: {{ .Values.namespace }}
+
+  labels:
+    {{- include "sre-project.labels" . | nindent 4 }}
+
 spec:
-  schedule: "0 2 * * 0" # Every Sunday at 2 AM
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  schedule: {{ .Values.backup.schedule | quote }}
+  successfulJobsHistoryLimit: {{ .Values.backup.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.backup.failedJobsHistoryLimit }}
 
   jobTemplate:
     spec:
@@ -16,25 +20,25 @@ spec:
 
           containers:
             - name: postgres-backup
-              image: postgres:13-alpine
+              image: {{ .Values.postgres.image }}
 
               env:
                 - name: PGHOST
-                  value: postgres
+                  value: {{ .Values.backup.host }}
 
                 - name: PGDATABASE
-                  value: tasksdb
+                  value: {{ .Values.postgres.database }}
 
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef:
-                      name: sre-project-db-credentials
+                      name: {{ .Values.postgres.existingSecret }}
                       key: username
 
                 - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: sre-project-db-credentials
+                      name: {{ .Values.postgres.existingSecret }}
                       key: password
 
               command:
@@ -59,4 +63,4 @@ spec:
           volumes:
             - name: backup-storage
               persistentVolumeClaim:
-                claimName: postgres-backup-pvc
+                claimName: {{ .Values.backup.pvc }}
