@@ -20,6 +20,7 @@ The project demonstrates a full path from local development to cloud deployment,
 - [backend/app/crud.py](backend/app/crud.py) - Database CRUD logic
 - [backend/app/schemas.py](backend/app/schemas.py) - Pydantic request and response schemas
 - [docker-compose.yml](docker-compose.yml) - Local Docker Compose setup for PostgreSQL and the backend
+- [helm/sre-project](helm/sre-project) - Helm chart for deploying the application, PostgreSQL StatefulSet, headless services, and backup resources
 - [kubernetes](kubernetes) - Kubernetes deployment manifests for the app, PostgreSQL, and backup workflow
 - [terraform](terraform) - Terraform files for provisioning AWS EKS infrastructure
 
@@ -110,9 +111,48 @@ terraform apply
 
 Make sure your AWS credentials are configured before applying the changes.
 
-## Deploying to Kubernetes
+## Deploying with Helm
 
-The repository includes Kubernetes manifests under [kubernetes](kubernetes). To deploy them:
+The project includes a Helm chart in [helm/sre-project](helm/sre-project). It manages the application deployment, PostgreSQL StatefulSet, headless services, config maps, and backup CronJob.
+
+### Render the chart locally
+
+```bash
+cd helm/sre-project
+helm template sre-project .
+```
+
+### Install or upgrade the release
+
+```bash
+cd helm/sre-project
+helm upgrade --install sre-project . \
+  --namespace sre-project \
+  --create-namespace
+```
+
+### Current Helm values
+
+The chart is configured with values in [helm/sre-project/values.yaml](helm/sre-project/values.yaml), including:
+
+- app deployment settings such as `replicaCount`, `image`, and `service`
+- PostgreSQL settings such as `postgres.image`, `postgres.database`, `postgres.storage`, and `postgres.replicas`
+- secret references such as `postgres.existingSecret`
+- replica configuration under `replica:` for PostgreSQL replication setup
+- backup configuration under `backup:`
+
+### PostgreSQL configuration notes
+
+The PostgreSQL manifests use a headless Service pattern (`clusterIP: None`) so StatefulSet pods can be addressed individually. The primary PostgreSQL StatefulSet and the replica StatefulSet rely on existing Kubernetes Secret objects, notably:
+
+- `sre-project-db-credentials`
+- `postgres-replication-secret`
+
+These are expected to exist in the target namespace before the workload is scheduled.
+
+## Deploying to Kubernetes directly
+
+The repository also includes static Kubernetes manifests under [kubernetes](kubernetes). To deploy them:
 
 ```bash
 kubectl apply -f kubernetes/
@@ -124,6 +164,7 @@ The application is intended as a practical example for learning and demonstratin
 
 - REST API development with FastAPI
 - Database-backed services
-- Container orchestration with Kubernetes
+- Stateful PostgreSQL deployment patterns with headless Services
+- Container orchestration with Kubernetes and Helm
 - Infrastructure provisioning with Terraform
 - Basic observability and platform engineering workflows
