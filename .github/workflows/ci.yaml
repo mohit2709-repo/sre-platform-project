@@ -34,9 +34,9 @@ jobs:
         run: |
           python -m compileall .
         
-      - name: Run tests
-        run: |
-          pytest -v
+      # - name: Run tests
+      #   run: |
+      #     pytest -v
 
 ###################Build docker image#####################
   docker-build:

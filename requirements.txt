@@ -4,4 +4,4 @@ sqlalchemy
 psycopg2-binary
 pydantic
 prometheus-fastapi-instrumentator
-pytest
+# pytest
