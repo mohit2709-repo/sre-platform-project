@@ -23,6 +23,7 @@ The project demonstrates a full path from local development to cloud deployment,
 - [helm/sre-project](helm/sre-project) - Helm chart for deploying the application, PostgreSQL StatefulSet, headless services, and backup resources
 - [kubernetes](kubernetes) - Kubernetes deployment manifests for the app, PostgreSQL, and backup workflow
 - [terraform](terraform) - Terraform files for provisioning AWS EKS infrastructure
+- [.github/ci.yaml](.github/ci.yaml) - GitHub Actions CI/CD workflow
 
 ## Prerequisites
 
@@ -33,6 +34,55 @@ Before running or deploying the project, make sure you have:
 - Terraform
 - AWS CLI configured with credentials
 - kubectl
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for automated testing, building, security scanning, and deployment. The pipeline is defined in [.github/ci.yaml](.github/ci.yaml).
+
+### Pipeline Stages
+
+1. **Python Test** - Runs on every push and pull request
+   - Checks out code
+   - Sets up Python 3.11
+   - Installs dependencies from `requirements.txt`
+   - Validates Python syntax with `compileall`
+   - Runs pytest test suite
+
+2. **Docker Build** - Runs after Python tests pass
+   - Builds Docker image and tags it with commit SHA: `task-api:<commit-sha>`
+   - Uses Docker Buildx for advanced builds
+
+3. **Security Scan** - Runs after Docker build completes
+   - Scans Docker image with Trivy for vulnerabilities
+   - Checks for CRITICAL and HIGH severity issues
+   - Fails the pipeline if vulnerabilities are found
+
+4. **Docker Push** - Runs only on main branch pushes (after security scan passes)
+   - Authenticates with Docker Hub
+   - Pushes image to Docker Hub with tags:
+     - `mohit2709/task-api:latest`
+     - `mohit2709/task-api:<commit-sha>`
+
+### Required GitHub Secrets
+
+For the CI/CD pipeline to work, configure these secrets in your GitHub repository settings:
+
+- `DOCKERHUB_USERNAME` - Your Docker Hub username
+- `DOCKERHUB_TOKEN` - Your Docker Hub access token
+
+### Pipeline Flow
+
+```
+Push/PR to main
+    ↓
+Python Tests (syntax check, pytest)
+    ↓
+Docker Build (create image)
+    ↓
+Security Scan (Trivy vulnerability check)
+    ↓
+Docker Push (to Docker Hub) [main branch only]
+```
 
 ## Running with Docker Compose
 
@@ -167,4 +217,6 @@ The application is intended as a practical example for learning and demonstratin
 - Stateful PostgreSQL deployment patterns with headless Services
 - Container orchestration with Kubernetes and Helm
 - Infrastructure provisioning with Terraform
+- Automated CI/CD with GitHub Actions
+- Container security scanning and vulnerability management
 - Basic observability and platform engineering workflows
