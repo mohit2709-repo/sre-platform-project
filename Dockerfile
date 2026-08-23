@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Upgrade pip, setuptools, and wheel first
-RUN pip install --no-cache-dir --upgrade pip setuptools "wheel>=0.46.2"
+RUN pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" "wheel>=0.46.2"
 
 RUN pip install --no-cache-dir -r requirements.txt
 
