@@ -38,45 +38,28 @@ jobs:
       #   run: |
       #     pytest -v
 
-###################Build docker image#####################
-  docker-build:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-
-    needs:
-      - python-test
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Image
-        run: |
-          docker build -t task-api:${{github.sha}} .
-
-####################Security Scan#####################
-  security-scan:
-    name: Scan Docker Image
-    runs-on: ubuntu-latest
-
-    needs:
-      - docker-build
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: task-api:${{github.sha}}
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
+###################Build and scan docker image#####################
+  build-and-scan:
+  name: Build and Scan Docker Image
+  runs-on: ubuntu-latest
+  needs:
+    - python-test
+  steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Build Docker Image
+      run: |
+        docker build -t task-api:${{github.sha}} .
+    - name: Run Trivy Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: task-api:${{github.sha}}
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        severity: CRITICAL,HIGH
 
 #####################Push Docker Image#####################
   docker-push:
