@@ -47,15 +47,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Set up Docker Buildx
 
       - name: Clear Docker Cache
         run: docker buildx prune -af
 
+      - name: Set up Docker Buildx 
         uses: docker/setup-buildx-action@v3
+
       - name: Build Docker Image
         run: |
           docker build -t task-api:${{github.sha}} .
+          
       - name: Run Trivy Scan
         uses: aquasecurity/trivy-action@master
         with:
