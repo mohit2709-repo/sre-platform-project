@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sre-project
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/mohit2709-repo/sre-platform-project.git
+    targetRevision: HEAD
+    path: helm/sre-project
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sre-project
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    
+    syncOptions:
+      - CreateNamespace=true
