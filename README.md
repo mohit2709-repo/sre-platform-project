@@ -23,7 +23,7 @@ The project demonstrates a full path from local development to cloud deployment,
 - [helm/sre-project](helm/sre-project) - Helm chart for deploying the application, PostgreSQL StatefulSet, headless services, and backup resources
 - [kubernetes](kubernetes) - Kubernetes deployment manifests for the app, PostgreSQL, and backup workflow
 - [terraform](terraform) - Terraform files for provisioning AWS EKS infrastructure
-- [.github/ci.yaml](.github/ci.yaml) - GitHub Actions CI/CD workflow
+- [.github/workflows/ci.yaml](.github/workflows/ci.yaml) - GitHub Actions CI/CD workflow
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ Before running or deploying the project, make sure you have:
 
 ## CI/CD Pipeline
 
-This project uses GitHub Actions for automated testing, building, security scanning, and deployment. The pipeline is defined in [.github/ci.yaml](.github/ci.yaml).
+This project uses GitHub Actions for automated testing, building, security scanning, and publishing Docker images. Argo CD watches the Helm chart and deploys changes from Git. The pipeline is defined in [.github/workflows/ci.yaml](.github/workflows/ci.yaml).
 
 ### Pipeline Stages
 
@@ -46,11 +46,11 @@ This project uses GitHub Actions for automated testing, building, security scann
    - Sets up Python 3.11
    - Installs dependencies from `requirements.txt`
    - Validates Python syntax with `compileall`
-   - Runs pytest test suite
+    - A pytest step is available but currently commented out in the workflow
 
 2. **Docker Build** - Runs after Python tests pass
    - Builds Docker image and tags it with commit SHA: `task-api:<commit-sha>`
-   - Uses Docker Buildx for advanced builds
+    - Pulls the latest base image before building
 
 3. **Security Scan** - Runs after Docker build completes
    - Scans Docker image with Trivy for vulnerabilities
@@ -59,9 +59,13 @@ This project uses GitHub Actions for automated testing, building, security scann
 
 4. **Docker Push** - Runs only on main branch pushes (after security scan passes)
    - Authenticates with Docker Hub
+   - Reads and validates the application tag from `helm/sre-project/values.yaml`
    - Pushes image to Docker Hub with tags:
      - `mohit2709/task-api:latest`
      - `mohit2709/task-api:<commit-sha>`
+     - `mohit2709/task-api:<helm-image-tag>` (for example, `v2`)
+
+After the image is published and the Helm change is pushed to `main`, Argo CD automatically syncs the release and deploys the image tag declared in `values.yaml`.
 
 ### Required GitHub Secrets
 
@@ -75,13 +79,13 @@ For the CI/CD pipeline to work, configure these secrets in your GitHub repositor
 ```
 Push/PR to main
     ↓
-Python Tests (syntax check, pytest)
+Python Validation (syntax check)
     ↓
-Docker Build (create image)
+  Docker Build and Scan (create and inspect image)
     ↓
-Security Scan (Trivy vulnerability check)
+  Docker Push (to Docker Hub) [main branch only]
     ↓
-Docker Push (to Docker Hub) [main branch only]
+  Argo CD Sync (Helm deployment)
 ```
 
 ## Running with Docker Compose
@@ -185,11 +189,18 @@ helm upgrade --install sre-project . \
 
 The chart is configured with values in [helm/sre-project/values.yaml](helm/sre-project/values.yaml), including:
 
-- app deployment settings such as `replicaCount`, `image`, and `service`
+- app deployment settings such as `replicaCount`, `image.repository`, `image.tag`, and `service`
 - PostgreSQL settings such as `postgres.image`, `postgres.database`, `postgres.storage`, and `postgres.replicas`
 - secret references such as `postgres.existingSecret`
 - replica configuration under `replica:` for PostgreSQL replication setup
 - backup configuration under `backup:`
+
+The Helm chart's backup CronJob expects the `postgres-backup-pvc` claim to exist in the `sre-project` namespace. Create it before enabling backup Jobs:
+
+```bash
+kubectl apply -f kubernetes/backup-pvc.yaml
+kubectl get pvc -n sre-project
+```
 
 ### PostgreSQL configuration notes
 
