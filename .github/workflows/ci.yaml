@@ -87,6 +87,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Read application image tag
+        id: image-version
+        shell: bash
+        run: |
+          image_tag=$(awk '$1 == "tag:" { print $2; exit }' helm/sre-project/values.yaml)
+          if [[ ! "$image_tag" =~ ^v[0-9]+$ ]]; then
+            echo "Invalid application image tag: $image_tag"
+            exit 1
+          fi
+          echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -95,6 +106,7 @@ jobs:
           tags: |
             mohit2709/task-api:latest
             mohit2709/task-api:${{ github.sha }}
+            mohit2709/task-api:${{ steps.image-version.outputs.tag }}
           
 
 
