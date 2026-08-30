@@ -16,9 +16,14 @@ RUN python -m pip install --no-cache-dir --upgrade \
 	"setuptools>=78.1.1" \
 	"wheel>=0.46.2"
 
-RUN python -c "import importlib.metadata as m; assert m.version('msgpack') >= '1.2.1', m.version('msgpack'); assert m.version('setuptools') >= '78.1.1', m.version('setuptools')"
+RUN python -m pip install --no-cache-dir --upgrade -r requirements.txt \
+	&& python -c "import importlib.metadata as m; assert m.version('msgpack') >= '1.2.1', m.version('msgpack'); assert m.version('setuptools') >= '78.1.1', m.version('setuptools')" \
+	&& python -m pip uninstall -y pip setuptools wheel \
+	&& rm -rf /usr/local/lib/python3.11/ensurepip
 
 COPY . .
+
+WORKDIR /app/backend
 
 EXPOSE 8000
 

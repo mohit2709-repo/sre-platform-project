@@ -56,7 +56,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build --no-cache -t task-api:${{github.sha}} .
+          docker build --pull --no-cache -t task-api:${{github.sha}} .
           
       - name: Run Trivy Scan
         uses: aquasecurity/trivy-action@master
