@@ -5,7 +5,7 @@ replicaCount: 2
 image:
   repository: mohit2709/task-api
   pullPolicy: IfNotPresent
-  tag: v2
+  tag: v1
 
 service:
   type: ClusterIP
