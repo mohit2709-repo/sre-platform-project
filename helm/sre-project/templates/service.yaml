@@ -17,5 +17,6 @@ spec:
     app: sre-project-app
   ports:
     - protocol: TCP
+      name: http
       port: {{ .Values.service.port}}
       targetPort: {{ .Values.service.targetPort}}

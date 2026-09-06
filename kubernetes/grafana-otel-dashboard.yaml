@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sre-project-otel-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  sre-project-otel.json: |
+    {
+      "title": "SRE Project OTel Metrics",
+      "uid": "sre-project-otel",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "15s",
+      "time": {"from": "now-30m", "to": "now"},
+      "templating": {
+        "list": [
+          {
+            "name": "DS_PROMETHEUS",
+            "type": "datasource",
+            "query": "prometheus",
+            "current": {"text": "Prometheus", "value": "prometheus"}
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Tasks Created",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [{"expr": "sum(tasks_created_total)", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+        },
+        {
+          "id": 2,
+          "title": "Current Tasks",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [{"expr": "sum(current_tasks)", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+        },
+        {
+          "id": 3,
+          "title": "API Request Rate",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 24, "x": 0, "y": 8},
+          "targets": [{"expr": "sum by (endpoint) (rate(api_requests_total[5m]))", "legendFormat": "{{endpoint}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+        },
+        {
+          "id": 4,
+          "title": "Request Latency P95",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 24, "x": 0, "y": 17},
+          "targets": [{"expr": "histogram_quantile(0.95, sum by (le, endpoint) (rate(request_duration_seconds_bucket[5m])))", "legendFormat": "{{endpoint}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+        },
+        {
+          "id": 5,
+          "title": "Pod CPU Usage",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 26},
+          "targets": [{"expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"sre-project\",container!=\"\",image!=\"\"}[5m]))", "legendFormat": "{{pod}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []}
+        },
+        {
+          "id": 6,
+          "title": "Pod Memory Usage",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 26},
+          "targets": [{"expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"sre-project\",container!=\"\",image!=\"\"})", "legendFormat": "{{pod}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []}
+        },
+        {
+          "id": 7,
+          "title": "Pod Network Receive",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 35},
+          "targets": [{"expr": "sum by (pod) (rate(container_network_receive_bytes_total{namespace=\"sre-project\"}[5m]))", "legendFormat": "{{pod}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "Bps"}, "overrides": []}
+        },
+        {
+          "id": 8,
+          "title": "Pod Network Transmit",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 35},
+          "targets": [{"expr": "sum by (pod) (rate(container_network_transmit_bytes_total{namespace=\"sre-project\"}[5m]))", "legendFormat": "{{pod}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "Bps"}, "overrides": []}
+        },
+        {
+          "id": 9,
+          "title": "Pod Restarts",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 44},
+          "targets": [{"expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"sre-project\"})", "legendFormat": "{{pod}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+        },
+        {
+          "id": 10,
+          "title": "Running Pods",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 44},
+          "targets": [{"expr": "sum(kube_pod_status_phase{namespace=\"sre-project\",phase=\"Running\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+        },
+        {
+          "id": 11,
+          "title": "Failed Request Rate",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 53},
+          "targets": [{"expr": "sum(rate(failed_requests_total[5m]))", "legendFormat": "failed requests", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+        },
+        {
+          "id": 12,
+          "title": "Average Request Latency",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 53},
+          "targets": [{"expr": "sum(rate(request_duration_seconds_sum[5m])) / sum(rate(request_duration_seconds_count[5m]))", "legendFormat": "average latency", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+        }
+      ]
+    }

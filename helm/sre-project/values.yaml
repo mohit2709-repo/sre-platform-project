@@ -55,3 +55,9 @@ ingress:
   targetType: ip
   healthCheckPath: /health
 
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    release: kube-prometheus-stack
+

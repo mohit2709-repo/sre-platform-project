@@ -1,0 +1,21 @@
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sre-project
+  namespace: {{ .Values.namespace }}
+  labels:
+    release: {{ .Values.monitoring.serviceMonitor.release }}
+    {{- include "sre-project.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sre-project
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace }}
+  endpoints:
+    - port: http
+      path: /metrics/
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+{{- end }}
