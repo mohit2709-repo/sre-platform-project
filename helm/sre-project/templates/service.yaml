@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Values.namespace }}
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/path: /metrics
+    prometheus.io/path: /metrics/
     prometheus.io/port: "{{ .Values.service.port }}"
 
   labels:
