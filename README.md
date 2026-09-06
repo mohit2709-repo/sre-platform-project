@@ -106,7 +106,123 @@ This will start:
 - API docs: http://localhost:8000/docs
 - Health check: http://localhost:8000/health
 - Database health check: http://localhost:8000/health/db
-- Metrics: http://localhost:8000/metrics
+- Metrics: http://localhost:8000/metrics/
+
+## Observability
+
+The application uses OpenTelemetry for application metrics and traces:
+
+- OTel counters, gauges, and histograms are defined in [backend/app/metrics.py](backend/app/metrics.py)
+- FastAPI and SQLAlchemy traces are exported to the application logs with `ConsoleSpanExporter`
+- OTel metrics are exposed in Prometheus format at `/metrics/` through `PrometheusMetricReader`
+- Prometheus scrapes the application using the `ServiceMonitor` in [helm/sre-project/templates/servicemonitor.yaml](helm/sre-project/templates/servicemonitor.yaml)
+- Grafana dashboard configuration is in [kubernetes/grafana-otel-dashboard.yaml](kubernetes/grafana-otel-dashboard.yaml)
+
+The monitoring stack is installed with `kube-prometheus-stack`, which provides Prometheus, Grafana, kube-state-metrics, and Kubernetes container metrics.
+
+### Install the monitoring stack
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --set alertmanager.enabled=false \
+  --set grafana.persistence.enabled=false \
+  --set prometheus.prometheusSpec.retention=2h \
+  --set prometheus.prometheusSpec.storageSpec=null \
+  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
+```
+
+Apply the dashboard after the monitoring stack is available:
+
+```bash
+kubectl apply -f kubernetes/grafana-otel-dashboard.yaml
+```
+
+### Access the observability tools locally
+
+```bash
+kubectl port-forward -n sre-project svc/sre-project-service 8081:80
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+```
+
+Open Grafana at http://localhost:3000. The admin username is `admin`; retrieve the generated password with:
+
+```bash
+kubectl get secret -n monitoring kube-prometheus-stack-grafana \
+  -o jsonpath='{.data.admin-password}' | base64 --decode; echo
+```
+
+The provisioned dashboard is named `SRE Project OTel Metrics`. It includes application metrics plus Kubernetes pod CPU, memory, network, restart, and status panels.
+
+### Verify metrics and traces
+
+Generate application traffic:
+
+```bash
+curl http://localhost:8081/health
+curl http://localhost:8081/health/db
+curl -X POST http://localhost:8081/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"OTel test","description":"Testing observability"}'
+curl http://localhost:8081/tasks/999999
+```
+
+Inspect the OTel metrics endpoint:
+
+```bash
+curl -s http://localhost:8081/metrics/ | grep -E \
+  'tasks_created|current_tasks|api_requests|request_duration|failed_requests'
+```
+
+Useful PromQL queries include:
+
+```promql
+sum(tasks_created_total)
+sum(current_tasks)
+sum by (endpoint) (rate(api_requests_total[5m]))
+sum(rate(failed_requests_total[5m]))
+sum(rate(request_duration_seconds_sum[5m])) / sum(rate(request_duration_seconds_count[5m]))
+```
+
+View trace output with:
+
+```bash
+kubectl logs -n sre-project deploy/sre-project-deployment -f
+```
+
+### Temporarily pause and resume the stack
+
+To pause the application, databases, backup job, Prometheus, and Grafana without deleting PVCs:
+
+```bash
+kubectl scale deployment/sre-project-deployment -n sre-project --replicas=0
+kubectl scale statefulset/postgres statefulset/postgres-replica -n sre-project --replicas=0
+kubectl patch cronjob/postgres-backup -n sre-project --type=merge \
+  -p '{"spec":{"suspend":true}}'
+kubectl scale deployment/kube-prometheus-stack-grafana \
+  deployment/kube-prometheus-stack-kube-state-metrics \
+  deployment/kube-prometheus-stack-operator -n monitoring --replicas=0
+kubectl scale statefulset/prometheus-kube-prometheus-stack-prometheus \
+  -n monitoring --replicas=0
+```
+
+Resume the workloads with:
+
+```bash
+kubectl scale statefulset/postgres statefulset/postgres-replica -n sre-project --replicas=1
+kubectl patch cronjob/postgres-backup -n sre-project --type=merge \
+  -p '{"spec":{"suspend":false}}'
+kubectl scale deployment/sre-project-deployment -n sre-project --replicas=2
+kubectl scale deployment/kube-prometheus-stack-grafana \
+  deployment/kube-prometheus-stack-kube-state-metrics \
+  deployment/kube-prometheus-stack-operator -n monitoring --replicas=1
+kubectl scale statefulset/prometheus-kube-prometheus-stack-prometheus \
+  -n monitoring --replicas=1
+```
 
 ## Example API Requests
 
