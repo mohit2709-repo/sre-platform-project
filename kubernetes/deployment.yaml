@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: sre-project-container
-          image: mohit2709/task-api:v2
+          image: mohit2709/task-api:v3
           ports:
             - containerPort: 8000
           livenessProbe:
