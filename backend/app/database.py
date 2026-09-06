@@ -30,6 +30,9 @@ for attempt in range(1, MAX_RETRIES + 1):
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
 
+        #Opentelemetry SQLAlchemy instrumentation
+        SQLAlchemyInstrumentor().instrument(engine=engine)
+
         print("[DATABASE] Connection successful.")
         break
 

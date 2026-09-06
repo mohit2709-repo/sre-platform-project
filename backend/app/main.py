@@ -2,6 +2,10 @@ from fastapi import FastAPI
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import (BatchSpanProcessor, ConsoleSpanExporter)
+from opentelemetry import trace
 from .logger import logger
 from prometheus_fastapi_instrumentator import Instrumentator
 from .metrics import current_tasks   
@@ -21,6 +25,14 @@ from . import schemas
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+#Opentelemetry tracing
+tracer_provider = TracerProvider()
+tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+trace.set_tracer_provider(tracer_provider)
+FastAPIInstrumentor().instrument_app(app)
+
+#Prometheus metrics
 Instrumentator().instrument(app).expose(app)
 
 @app.on_event("startup")
