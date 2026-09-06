@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 import os
 import time
 
