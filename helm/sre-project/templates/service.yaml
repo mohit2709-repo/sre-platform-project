@@ -3,6 +3,10 @@ kind: Service
 metadata:
   name: sre-project-service
   namespace: {{ .Values.namespace }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "{{ .Values.service.port }}"
 
   labels:
     {{- include "sre-project.labels" . | nindent 4 }}

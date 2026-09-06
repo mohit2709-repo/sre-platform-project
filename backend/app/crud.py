@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from .metrics import tasks_created_total
 from .metrics import tasks_deleted_total
 from .metrics import database_errors_total
-from .metrics import current_tasks
+from .metrics import set_current_tasks
 from .models import Task
 
 
@@ -21,13 +21,14 @@ def create_task(
         db.add(task)
         db.commit()
         db.refresh(task)
-        tasks_created_total.inc()
-        current_tasks.set(db.query(Task).count())
+        # OTel records application-level task metrics for Prometheus scraping.
+        tasks_created_total.add(1)
+        set_current_tasks(db.query(Task).count())
 
         return task
     
     except Exception as e:
-        database_errors_total.inc()
+        database_errors_total.add(1)
         db.rollback()
         raise
 
@@ -53,11 +54,11 @@ def delete_task(
         if task:
             db.delete(task)
             db.commit()
-            tasks_deleted_total.inc()
-            current_tasks.set(db.query(Task).count())
+            tasks_deleted_total.add(1)
+            set_current_tasks(db.query(Task).count())
         return task
     
     except Exception as e:
-        database_errors_total.inc()
+        database_errors_total.add(1)
         db.rollback()
         raise

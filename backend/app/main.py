@@ -6,9 +6,10 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (BatchSpanProcessor, ConsoleSpanExporter)
 from opentelemetry import trace
+from prometheus_client import make_asgi_app
 from .logger import logger
-from prometheus_fastapi_instrumentator import Instrumentator
-from .metrics import current_tasks   
+# from prometheus_fastapi_instrumentator import Instrumentator  # Disabled: OTel owns application metrics.
+from .metrics import set_current_tasks
 from .models import Task
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -32,15 +33,16 @@ tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
 trace.set_tracer_provider(tracer_provider)
 FastAPIInstrumentor().instrument_app(app)
 
-#Prometheus metrics
-Instrumentator().instrument(app).expose(app)
+# OTel metrics are exposed through Prometheus' /metrics scrape endpoint.
+app.mount("/metrics", make_asgi_app())
+# Instrumentator().instrument(app).expose(app)  # Disabled: replaced by OTel metrics.
 
 @app.on_event("startup")
 def initialize_metrics():
     db = SessionLocal()
     try:
         count = db.query(Task).count()
-        current_tasks.set(count)
+        set_current_tasks(count)
         logger.info(f"Initialized current_tasks={count}")
     except Exception as e:
         logger.error(f"Failed to initialize metrics: {str(e)}")
@@ -57,11 +59,19 @@ async def log_requests(request: Request, call_next):
        )
        response = await call_next(request)
        if response.status_code >= 400:
-           failed_requests_total.inc()
+           failed_requests_total.add(1)
 
        duration = time.time() - start_time
-       api_requests_total.labels(method=request.method, endpoint=request.url.path, status_code=response.status_code).inc()
-       request_duration_seconds.labels(method=request.method, endpoint=request.url.path).observe(duration)
+       attributes = {
+           "method": request.method,
+           "endpoint": request.url.path,
+           "status_code": str(response.status_code),
+       }
+       api_requests_total.add(1, attributes)
+       request_duration_seconds.record(
+           duration,
+           {"method": request.method, "endpoint": request.url.path},
+       )
         
        logger.info(
            f"Request Completed | "

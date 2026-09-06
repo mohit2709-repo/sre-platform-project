@@ -10,6 +10,7 @@ setuptools==84.0.0
 # pytest
 opentelemetry-api==1.30.0
 opentelemetry-sdk==1.30.0
+opentelemetry-exporter-prometheus==0.51b0
 opentelemetry-instrumentation-fastapi
 opentelemetry-instrumentation
 opentelemetry-instrumentation-sqlalchemy
